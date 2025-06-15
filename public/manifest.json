@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Screener - Screen Recorder with Audio",
+  "version": "1.0.0",
+  "description": "Professional screen recording with system audio capture",
+  
+  "permissions": [
+    "desktopCapture",
+    "activeTab",
+    "storage"
+  ],
+  
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://screener.vercel.app/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [{
+    "matches": ["http://localhost:3000/*", "https://screener.vercel.app/*"],
+    "js": ["content.js"]
+  }],
+  
+  "action": {
+    "default_title": "Screener"
+  }
+} 
