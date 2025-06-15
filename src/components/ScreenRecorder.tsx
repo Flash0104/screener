@@ -41,7 +41,7 @@ export default function ScreenRecorder() {
 
       const displayStream = await navigator.mediaDevices.getDisplayMedia(displayConstraints);
       
-      let combinedStream = displayStream;
+      const combinedStream = displayStream;
       let cameraStream = null;
 
       // 2. Add microphone if screen doesn't have audio
@@ -229,7 +229,7 @@ export default function ScreenRecorder() {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         toast.success('Video uploaded successfully!');
         setRecordedBlob(null);
         if (videoRef.current) {
@@ -349,7 +349,7 @@ export default function ScreenRecorder() {
                 <Monitor className="w-4 h-4 text-white" />
                 <select
                   value={options.quality}
-                  onChange={(e) => setOptions(prev => ({ ...prev, quality: e.target.value as any }))}
+                  onChange={(e) => setOptions(prev => ({ ...prev, quality: e.target.value as 'high' | 'medium' | 'low' }))}
                   className="bg-white/20 text-white rounded px-2 py-1 border border-white/30"
                 >
                   <option value="high">High Quality</option>
@@ -404,7 +404,7 @@ export default function ScreenRecorder() {
 
         {/* Instructions */}
         <div className="text-center text-gray-300">
-          <p className="mb-2">Click "Start Recording" to capture your screen</p>
+          <p className="mb-2">Click &quot;Start Recording&quot; to capture your screen</p>
           <p className="text-sm">Your browser will ask for permission to access your screen</p>
         </div>
       </motion.div>

@@ -17,11 +17,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { io } from 'socket.io-client';
 
-interface PeerConnection {
-  id: string;
-  connection: RTCPeerConnection;
-  stream?: MediaStream;
-}
+// Interface for future P2P connections
+// interface PeerConnection {
+//   id: string;
+//   connection: RTCPeerConnection;
+//   stream?: MediaStream;
+// }
 
 export default function LiveStreamer() {
   const [isStreaming, setIsStreaming] = useState(false);
@@ -40,7 +41,11 @@ export default function LiveStreamer() {
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<{
+    emit: (event: string, data: unknown) => void;
+    disconnect: () => void;
+    on: (event: string, callback: (...args: unknown[]) => void) => void;
+  } | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const peersRef = useRef<{ [key: string]: RTCPeerConnection }>({});
   
@@ -311,7 +316,7 @@ export default function LiveStreamer() {
               stream.addTrack(track);
             });
             console.log('✅ Microphone added to screen share');
-          } catch (micError) {
+          } catch {
             console.log('❌ Microphone denied');
           }
         }
@@ -329,7 +334,7 @@ export default function LiveStreamer() {
             setCameraStream(camStream);
             console.log('📹 Camera overlay ready');
             toast.success('🖥️📹 Screen + Camera overlay active!');
-          } catch (camError) {
+          } catch {
             toast.dismiss();
             console.log('Camera denied for screen share');
             toast.success('🖥️ Screen sharing active (camera denied)');
@@ -390,7 +395,7 @@ export default function LiveStreamer() {
           });
           toast.success('🔴 Live streaming! Others can join with Room ID');
         }
-      } catch (socketError) {
+      } catch {
         console.log('WebRTC unavailable, local preview only');
         toast.success('🔴 Local preview active (WebRTC unavailable)');
       }
@@ -720,7 +725,7 @@ export default function LiveStreamer() {
             </div>
             <div>
               <p className="mb-2"><strong>3. Go Live:</strong></p>
-              <p className="text-sm">• Click "Go Live" to start streaming</p>
+              <p className="text-sm">• Click &quot;Go Live&quot; to start streaming</p>
               <p className="text-sm">• Others can join with the same Room ID</p>
             </div>
             <div>

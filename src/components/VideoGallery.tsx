@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Calendar, Clock, Download, Eye, Play, Share2, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -72,7 +73,7 @@ export default function VideoGallery() {
     try {
       await navigator.clipboard.writeText(video.cloudinaryUrl);
       toast.success('Video link copied to clipboard!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy link');
     }
   };
@@ -161,9 +162,11 @@ export default function VideoGallery() {
                 {/* Video Thumbnail */}
                 <div className="relative aspect-video bg-black">
                   {video.thumbnail ? (
-                    <img
+                    <Image
                       src={video.thumbnail}
                       alt={video.title}
+                      width={400}
+                      height={300}
                       className="w-full h-full object-cover"
                     />
                   ) : (
