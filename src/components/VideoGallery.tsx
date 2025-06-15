@@ -168,12 +168,20 @@ export default function VideoGallery() {
                       width={400}
                       height={300}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to video icon if thumbnail fails
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-12 h-12 text-gray-400" />
-                    </div>
-                  )}
+                  ) : null}
+                  
+                  {/* Fallback when thumbnail fails */}
+                  <div className="w-full h-full flex items-center justify-center bg-gray-800" style={{ display: video.thumbnail ? 'none' : 'flex' }}>
+                    <Play className="w-12 h-12 text-gray-400" />
+                  </div>
                   
                   {/* Play Button Overlay */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">

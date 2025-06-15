@@ -10,9 +10,7 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['prisma'],
-  },
+  serverExternalPackages: ['prisma'],
 }
 
 module.exports = nextConfig 

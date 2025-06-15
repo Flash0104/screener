@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           description: validatedData.description,
           cloudinaryUrl: result.secure_url,
           publicId: result.public_id,
-          thumbnail: result.secure_url.replace('/video/upload/', '/video/upload/so_0/'),
+          thumbnail: result.secure_url.replace('/video/upload/', '/video/upload/c_scale,w_400,h_300,f_jpg,so_5/'),
           duration: result.duration,
           fileSize: result.bytes,
         },
