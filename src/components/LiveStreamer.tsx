@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    Camera,
     Copy,
     Mic,
     MicOff,
@@ -40,12 +41,13 @@ export default function LiveStreamer() {
   const [pipPosition, setPipPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
 
-  // Check if we're on mobile
+  // Check if we're on mobile and screen recording support
   useEffect(() => {
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                          !navigator.mediaDevices || 
-                          !navigator.mediaDevices.getDisplayMedia;
-    setIsMobile(isMobileDevice);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const hasScreenShare = navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia;
+    
+    // Set isMobile to true only if it's mobile AND doesn't support screen sharing
+    setIsMobile(isMobileDevice && !hasScreenShare);
   }, []);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -496,12 +498,12 @@ export default function LiveStreamer() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Mobile Warning */}
       {isMobile && (
-        <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-6 mb-6">
-          <div className="text-orange-200 text-center">
-            <Monitor className="w-12 h-12 mx-auto mb-3" />
-            <h3 className="text-xl font-semibold mb-2">Desktop Required for Screen Sharing</h3>
-            <p className="text-sm mb-2">Screen sharing is not supported on mobile devices.</p>
-            <p className="text-sm">You can still use camera + microphone features, but not screen sharing.</p>
+        <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-6 mb-6">
+          <div className="text-blue-200 text-center">
+            <Camera className="w-12 h-12 mx-auto mb-3" />
+            <h3 className="text-xl font-semibold mb-2">Camera Streaming Mode</h3>
+            <p className="text-sm mb-2">Your device doesn't support screen sharing.</p>
+            <p className="text-sm">You can use camera + microphone streaming instead.</p>
           </div>
         </div>
       )}
