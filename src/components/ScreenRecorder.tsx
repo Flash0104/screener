@@ -24,13 +24,10 @@ export default function ScreenRecorder() {
     quality: 'high'
   });
 
-  // Check if we're on mobile and screen recording support
+  // Check if we're on mobile (for UI adjustments only)
   useEffect(() => {
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const hasScreenShare = navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia;
-    
-    // Set isMobile to true only if it's mobile AND doesn't support screen sharing
-    setIsMobile(isMobileDevice && !hasScreenShare);
+    setIsMobile(isMobileDevice);
   }, []);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -42,35 +39,48 @@ export default function ScreenRecorder() {
     try {
       let displayStream: MediaStream;
 
-      if (isMobile) {
-        // Mobile: Use camera instead of screen
+      // Always try screen recording first, regardless of device
+      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+        try {
+          const displayConstraints = {
+            video: {
+              width: options.quality === 'high' ? 1920 : options.quality === 'medium' ? 1280 : 854,
+              height: options.quality === 'high' ? 1080 : options.quality === 'medium' ? 720 : 480
+            },
+            audio: options.includeAudio
+          };
+
+          displayStream = await navigator.mediaDevices.getDisplayMedia(displayConstraints);
+          toast.success(isMobile ? '📱 Screen recording started!' : '🖥️ Screen recording started!');
+        } catch (screenError) {
+          console.log('Screen recording failed, falling back to camera:', screenError);
+          
+          // Fallback to camera if screen recording fails
+          const cameraConstraints = {
+            video: {
+              width: options.quality === 'high' ? 1920 : options.quality === 'medium' ? 1280 : 854,
+              height: options.quality === 'high' ? 1080 : options.quality === 'medium' ? 720 : 480,
+              facingMode: options.includeCamera ? 'user' : 'environment'
+            },
+            audio: options.includeAudio
+          };
+
+          displayStream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
+          toast.success('📱 Camera recording started (screen sharing unavailable)');
+        }
+      } else {
+        // No screen sharing API available, use camera
         const cameraConstraints = {
           video: {
             width: options.quality === 'high' ? 1920 : options.quality === 'medium' ? 1280 : 854,
             height: options.quality === 'high' ? 1080 : options.quality === 'medium' ? 720 : 480,
-            facingMode: options.includeCamera ? 'user' : 'environment' // front camera if includeCamera is true, back camera otherwise
+            facingMode: options.includeCamera ? 'user' : 'environment'
           },
           audio: options.includeAudio
         };
 
         displayStream = await navigator.mediaDevices.getUserMedia(cameraConstraints);
-        toast.success('📱 Camera recording started!');
-      } else {
-        // Desktop: Use screen recording
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-          toast.error('Screen recording is not supported on this browser.');
-          return;
-        }
-
-        const displayConstraints = {
-          video: {
-            width: options.quality === 'high' ? 1920 : options.quality === 'medium' ? 1280 : 854,
-            height: options.quality === 'high' ? 1080 : options.quality === 'medium' ? 720 : 480
-          },
-          audio: options.includeAudio
-        };
-
-        displayStream = await navigator.mediaDevices.getDisplayMedia(displayConstraints);
+        toast.success('📱 Camera recording started (browser doesn\'t support screen sharing)');
       }
       
       const combinedStream = displayStream;
@@ -314,15 +324,18 @@ export default function ScreenRecorder() {
         {/* Recording Controls */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white mb-4">
-            {isMobile ? 'Camera Recorder' : 'Screen Recorder'}
+            Screen & Camera Recorder
           </h2>
           
           {isMobile && (
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
               <div className="text-blue-200 text-center">
-                <Camera className="w-8 h-8 mx-auto mb-2" />
-                <p className="text-sm">Your device doesn&apos;t support screen recording</p>
-                <p className="text-sm">Using camera recording instead</p>
+                <div className="flex justify-center space-x-2 mb-2">
+                  <Monitor className="w-6 h-6" />
+                  <span className="text-sm">+</span>
+                  <Camera className="w-6 h-6" />
+                </div>
+                <p className="text-sm">Will try screen recording first, fallback to camera if needed</p>
               </div>
             </div>
           )}
@@ -456,17 +469,13 @@ export default function ScreenRecorder() {
 
         {/* Instructions */}
         <div className="text-center text-gray-300">
-          {isMobile ? (
-            <>
-              <p className="mb-2">Click &quot;Start Recording&quot; to record with your camera</p>
-              <p className="text-sm">Your browser will ask for permission to access your camera and microphone</p>
-            </>
-          ) : (
-            <>
-              <p className="mb-2">Click &quot;Start Recording&quot; to capture your screen</p>
-              <p className="text-sm">Your browser will ask for permission to access your screen</p>
-            </>
-          )}
+          <p className="mb-2">Click &quot;Start Recording&quot; to begin</p>
+          <p className="text-sm">
+            {isMobile 
+              ? 'Will try screen recording first, then camera if unavailable'
+              : 'Your browser will ask for permission to access your screen'
+            }
+          </p>
         </div>
       </motion.div>
     </div>
