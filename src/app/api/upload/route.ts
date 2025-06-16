@@ -17,9 +17,21 @@ const uploadSchema = z.object({
   description: z.string().optional(),
 });
 
+// File size limit (40MB to be safe with Vercel's 50MB limit)
+const MAX_FILE_SIZE = 40 * 1024 * 1024; // 40MB
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Upload request received');
+    
+    // Check environment variables
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('❌ Missing Cloudinary environment variables');
+      return NextResponse.json({ 
+        error: 'Server configuration error', 
+        details: 'Missing Cloudinary credentials' 
+      }, { status: 500 });
+    }
     
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -36,6 +48,15 @@ export async function POST(request: NextRequest) {
     if (!file) {
       console.error('❌ No file provided');
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      console.error(`❌ File too large: ${file.size} bytes (max: ${MAX_FILE_SIZE})`);
+      return NextResponse.json({ 
+        error: 'File too large', 
+        details: `Maximum file size is ${MAX_FILE_SIZE / (1024 * 1024)}MB. Your file is ${Math.round(file.size / (1024 * 1024))}MB.` 
+      }, { status: 413 });
     }
 
     // Validate input
@@ -55,26 +76,33 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     console.log('✅ Buffer created, size:', buffer.length);
 
-    // Upload to Cloudinary
+    // Upload to Cloudinary with timeout
     console.log('☁️ Uploading to Cloudinary...');
-    const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'video',
-          folder: 'screener-videos',
-          format: 'mp4',
-        },
-        (error, result) => {
-          if (error) {
-            console.error('❌ Cloudinary error:', error);
-            reject(error);
-          } else {
-            console.log('✅ Cloudinary upload success:', result?.public_id);
-            resolve(result);
+    const uploadResult = await Promise.race([
+      new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'video',
+            folder: 'screener-videos',
+            format: 'mp4',
+            chunk_size: 6000000, // 6MB chunks
+          },
+          (error, result) => {
+            if (error) {
+              console.error('❌ Cloudinary error:', error);
+              reject(error);
+            } else {
+              console.log('✅ Cloudinary upload success:', result?.public_id);
+              resolve(result);
+            }
           }
-        }
-      ).end(buffer);
-    });
+        ).end(buffer);
+      }),
+      // 50 second timeout
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Upload timeout')), 50000)
+      )
+    ]);
 
     const result = uploadResult as { secure_url: string; public_id: string; duration: number; bytes: number };
 
@@ -117,7 +145,7 @@ export async function POST(request: NextRequest) {
       { 
         error: 'Failed to upload video', 
         details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
       },
       { status: 500 }
     );

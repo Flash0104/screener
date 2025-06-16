@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Camera, Download, Mic, Monitor, Play, Settings, Square, Upload } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 interface RecordingOptions {
@@ -17,11 +17,20 @@ export default function ScreenRecorder() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [options, setOptions] = useState<RecordingOptions>({
     includeAudio: true,
     includeCamera: false,
     quality: 'high'
   });
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                          !navigator.mediaDevices || 
+                          !navigator.mediaDevices.getDisplayMedia;
+    setIsMobile(isMobileDevice);
+  }, []);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -30,6 +39,12 @@ export default function ScreenRecorder() {
 
   const startRecording = useCallback(async () => {
     try {
+      // Check if getDisplayMedia is supported (desktop only)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        toast.error('Screen recording is not supported on mobile devices. Please use a desktop browser.');
+        return;
+      }
+
       // 1. Get screen stream
       const displayConstraints = {
         video: {
@@ -210,6 +225,13 @@ export default function ScreenRecorder() {
   const uploadVideo = async () => {
     if (!recordedBlob) return;
 
+    // Check file size (40MB limit)
+    const MAX_FILE_SIZE = 40 * 1024 * 1024; // 40MB
+    if (recordedBlob.size > MAX_FILE_SIZE) {
+      toast.error(`File too large! Maximum size is 40MB. Your file is ${Math.round(recordedBlob.size / (1024 * 1024))}MB.`);
+      return;
+    }
+
     const title = prompt('Enter video title:');
     if (!title) return;
 
@@ -228,19 +250,20 @@ export default function ScreenRecorder() {
         body: formData,
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        await response.json();
         toast.success('Video uploaded successfully!');
         setRecordedBlob(null);
         if (videoRef.current) {
           videoRef.current.src = '';
         }
       } else {
-        throw new Error('Upload failed');
+        throw new Error(data.details || data.error || 'Upload failed');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload video');
+      toast.error(`Failed to upload video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
     }
@@ -275,43 +298,56 @@ export default function ScreenRecorder() {
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white mb-4">Screen Recorder</h2>
           
-          {isRecording && (
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-white font-mono text-xl">{formatTime(recordingTime)}</span>
+          {isMobile ? (
+            <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-6 mb-6">
+              <div className="text-orange-200 mb-4">
+                <Monitor className="w-12 h-12 mx-auto mb-3" />
+                <h3 className="text-xl font-semibold mb-2">Desktop Required</h3>
+                <p className="text-sm">Screen recording is not supported on mobile devices.</p>
+                <p className="text-sm mt-2">Please use a desktop browser to record your screen.</p>
+              </div>
             </div>
+          ) : (
+            <>
+              {isRecording && (
+                <div className="flex items-center justify-center space-x-2 mb-4">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-white font-mono text-xl">{formatTime(recordingTime)}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-center space-x-4">
+                {!isRecording ? (
+                  <button
+                    onClick={startRecording}
+                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full flex items-center space-x-2 transition-all duration-200 transform hover:scale-105"
+                  >
+                    <Play className="w-6 h-6" />
+                    <span className="font-semibold">Start Recording</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopRecording}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-4 rounded-full flex items-center space-x-2 transition-all duration-200"
+                  >
+                    <Square className="w-6 h-6" />
+                    <span className="font-semibold">Stop Recording</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="bg-white/20 hover:bg-white/30 text-white p-4 rounded-full transition-all duration-200"
+                >
+                  <Settings className="w-6 h-6" />
+                </button>
+              </div>
+            </>
           )}
-
-          <div className="flex items-center justify-center space-x-4">
-            {!isRecording ? (
-              <button
-                onClick={startRecording}
-                className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full flex items-center space-x-2 transition-all duration-200 transform hover:scale-105"
-              >
-                <Play className="w-6 h-6" />
-                <span className="font-semibold">Start Recording</span>
-              </button>
-            ) : (
-              <button
-                onClick={stopRecording}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-4 rounded-full flex items-center space-x-2 transition-all duration-200"
-              >
-                <Square className="w-6 h-6" />
-                <span className="font-semibold">Stop Recording</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="bg-white/20 hover:bg-white/30 text-white p-4 rounded-full transition-all duration-200"
-            >
-              <Settings className="w-6 h-6" />
-            </button>
-          </div>
         </div>
 
         {/* Settings Panel */}
-        {showSettings && (
+        {showSettings && !isMobile && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -404,8 +440,17 @@ export default function ScreenRecorder() {
 
         {/* Instructions */}
         <div className="text-center text-gray-300">
-          <p className="mb-2">Click &quot;Start Recording&quot; to capture your screen</p>
-          <p className="text-sm">Your browser will ask for permission to access your screen</p>
+          {isMobile ? (
+            <>
+              <p className="mb-2">Screen recording requires desktop browser features</p>
+              <p className="text-sm">Try opening this site on your computer instead</p>
+            </>
+          ) : (
+            <>
+              <p className="mb-2">Click &quot;Start Recording&quot; to capture your screen</p>
+              <p className="text-sm">Your browser will ask for permission to access your screen</p>
+            </>
+          )}
         </div>
       </motion.div>
     </div>
