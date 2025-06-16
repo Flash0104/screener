@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Calendar, Clock, Download, Eye, Play, Share2, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -161,10 +162,11 @@ export default function VideoGallery() {
                 {/* Video Thumbnail */}
                 <div className="relative aspect-video bg-black">
                   {video.thumbnail ? (
-                    <img
+                    <Image
                       src={video.thumbnail}
                       alt={video.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                       onError={(e) => {
                         // Fallback to video icon if thumbnail fails
                         const target = e.target as HTMLImageElement;

@@ -203,10 +203,11 @@ export default function LiveStreamer() {
       toast.error('Connection failed - using local mode');
       return null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Create peer connection
-  const createPeerConnection = (peerId: string, shouldCreateOffer: boolean) => {
+  const createPeerConnection = useCallback((peerId: string, shouldCreateOffer: boolean) => {
     const peerConnection = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -244,7 +245,7 @@ export default function LiveStreamer() {
     if (shouldCreateOffer) {
       createOffer(peerId);
     }
-  };
+  }, [roomId]);
 
   // Create offer
   const createOffer = async (peerId: string) => {
@@ -264,7 +265,7 @@ export default function LiveStreamer() {
   };
 
   // Handle offer
-  const handleOffer = async (offer: RTCSessionDescriptionInit, fromId: string) => {
+  const handleOffer = useCallback(async (offer: RTCSessionDescriptionInit, fromId: string) => {
     const peerConnection = peersRef.current[fromId];
     if (!peerConnection) return;
 
@@ -279,7 +280,7 @@ export default function LiveStreamer() {
         roomId: roomId
       });
     }
-  };
+  }, [roomId]);
 
   // Handle answer
   const handleAnswer = async (answer: RTCSessionDescriptionInit, fromId: string) => {
@@ -502,7 +503,7 @@ export default function LiveStreamer() {
           <div className="text-blue-200 text-center">
             <Camera className="w-12 h-12 mx-auto mb-3" />
             <h3 className="text-xl font-semibold mb-2">Camera Streaming Mode</h3>
-            <p className="text-sm mb-2">Your device doesn't support screen sharing.</p>
+            <p className="text-sm mb-2">Your device doesn&apos;t support screen sharing.</p>
             <p className="text-sm">You can use camera + microphone streaming instead.</p>
           </div>
         </div>

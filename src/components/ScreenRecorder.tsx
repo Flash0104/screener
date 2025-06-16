@@ -220,7 +220,7 @@ export default function ScreenRecorder() {
       console.error('Error starting recording:', error);
       toast.error('Failed to start recording');
     }
-  }, [options]);
+  }, [options, isMobile]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -321,7 +321,7 @@ export default function ScreenRecorder() {
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
               <div className="text-blue-200 text-center">
                 <Camera className="w-8 h-8 mx-auto mb-2" />
-                <p className="text-sm">Your device doesn't support screen recording</p>
+                <p className="text-sm">Your device doesn&apos;t support screen recording</p>
                 <p className="text-sm">Using camera recording instead</p>
               </div>
             </div>
